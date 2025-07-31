@@ -33,8 +33,3 @@ Truth or Lie is a game where:
 - **WebSocket or polling** for real-time gameplay
 - Mobile-first design
 
----
-
-## �� Project Structure
-
-

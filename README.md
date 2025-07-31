@@ -1,8 +1,8 @@
 # 🎭 Truth or Lie
 
-A multiplayer social deduction game where players test their deception skills by submitting truths and lies. Others must guess which statement is true — and optionally, stake tokens on the outcome. Think: *Two Truths and a Lie*, powered by Web3.
+A multiplayer social deduction game where players test their deception skills by submitting truths and lies. Others must guess which statement is true - and optionally, stake tokens on the outcome. Think: *Two Truths and a Lie*, powered by Solana.
 
-Built for fun, competition, and technical mastery.
+Built for fun, and technical mastery.
 
 ---
 
@@ -13,7 +13,7 @@ Truth or Lie is a game where:
 - Other players must guess which is true.
 - Players earn ranks, badges, and optional winnings.
 - Sessions can be public or invite-only.
-- Optional: players can **stake tokens** — winner takes all.
+- Optional: players can **stake tokens**,  winner takes all.
 
 ---
 

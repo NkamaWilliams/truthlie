@@ -42,3 +42,8 @@ pub struct CreateGameSessionPayload {
     pub max_players: Option<u32>,
     pub stake_amount: Option<u32>
 }
+
+#[derive(Debug, Deserialize)]
+pub struct JoinGameSessionPayload {
+    pub player_id: Uuid
+}

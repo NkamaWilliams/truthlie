@@ -3,7 +3,7 @@ use chrono::Utc;
 use serde_json::json;
 use uuid::Uuid;
 
-use crate::{config, error::AppError, models::game::{CreateGameSessionPayload, GameSession, JoinGameSessionPayload}, AppStateData};
+use crate::{config::{self, MIN_PLAYERS}, error::AppError, models::game::{CreateGameSessionPayload, GameSession, JoinGameSessionPayload}, AppStateData};
 
 // When calling routes must include trailing / e.g. 'URL/games/'
 
@@ -67,6 +67,37 @@ pub async fn join_game(
     game.players.push(payload.player_id);
 
     Ok(HttpResponse::Ok().json(json!({"message": "Joined game successfully", "body": game.clone()})))
+}
+
+#[post("/{game_id}/start")]
+pub async fn start_game(
+    path: web::Path<Uuid>,
+    payload: web::Json<JoinGameSessionPayload>,
+    data: AppStateData,
+) -> Result<impl Responder, AppError> {
+    let game_id = path.into_inner();
+    let mut game = data.sessions.get_mut(&game_id)
+        .ok_or_else(|| AppError::NotFound(format!("Game {} not found", game_id)))?;
+
+    if (game.players.len() as u32) < MIN_PLAYERS {
+        return Err(AppError::Validation(format!(
+            "Game needs at least {} players to start!",
+            MIN_PLAYERS
+        )));
+    }
+
+    if game.has_started {
+        return Err(AppError::Validation("Game has already started!".into()));
+    }
+
+    if game.host_id != payload.player_id {
+        return  Err(AppError::Unauthorized("Only host can start game!".into()));
+    }
+    game.has_started = true;
+    game.updated_at = Utc::now().to_rfc3339();
+    game.current_round = 1;
+
+    Ok(HttpResponse::Ok().json(json!({"message": "Started game successfully", "body": game.clone()})))
 }
 
 #[get("/")]

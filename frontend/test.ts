@@ -118,14 +118,36 @@ describe("Truth or Lie API", function () {
     assert.strictEqual(joinResp.error, "Validation failed: Player already in game");
   });
 
-  it("should let player3 join the game", async function () {
+  it("player2 should not be able start the game", async function() {
+    const resp = await fetch(`${API_URL}/games/${game.id}/start`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({player_id: player2.id})
+    });
+    assert.strictEqual(resp.status, 401, "Expected 401 error for start");
+    const joinResp: ErrorResponse = await resp.json();
+    assert.strictEqual(joinResp.error, "Unauthorized: Only host can start game!");
+  });
+
+  it("player1 should be able start the game", async function() {
+    const resp = await fetch(`${API_URL}/games/${game.id}/start`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({player_id: player1.id})
+    });
+    assert.strictEqual(resp.status, 200, "Expected 200 error for start");
+    const joinResp: JoinResponse = await resp.json();
+    assert.strictEqual(joinResp.message, "Started game successfully");
+  });
+
+  it("should not let player3 join the game", async function () {
     const resp = await fetch(`${API_URL}/games/${game.id}/join`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({player_id: player3.id})
     });
-    assert.strictEqual(resp.status, 200, "Expected 200 Created for join");
-    const joinResp: JoinResponse = await resp.json();
-    assert.ok(joinResp.body.players.includes(player3.id), "Player3 should be in game");
+    assert.strictEqual(resp.status, 400, "Expected 400 Error for join");
+    const joinResp: ErrorResponse = await resp.json();
+    assert.ok(joinResp.error, "Validation failed: Game has already started!");
   })
 });

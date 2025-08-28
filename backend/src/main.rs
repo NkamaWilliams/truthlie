@@ -22,6 +22,10 @@ async fn main() -> io::Result<()> {
                 web::scope("/games")
                     .configure(routes::register_game_routes)
             )
+            .service(
+                web::scope("/ws")
+                    .configure(routes::register_ws_routes)
+            )
     })
     .bind(("127.0.0.1", 8080))?
     .run()

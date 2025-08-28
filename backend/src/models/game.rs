@@ -5,7 +5,7 @@ use uuid::Uuid;
 pub struct GameSession {
     pub id: Uuid,
     pub name: String,
-    pub round_statements: Vec<Statements>,
+    pub rounds: Vec<Round>,
     pub players: Vec<Uuid>,
     pub host_id: Uuid,
     pub has_started: bool,
@@ -19,6 +19,25 @@ pub struct GameSession {
     pub round_duration: u32, // in seconds
     pub created_at: String, // ISO 8601 format
     pub updated_at: String, // ISO 8601 format
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct Round {
+    pub id: Uuid,
+    pub game_id: Uuid,
+    pub round_number: u32,
+    pub owner: Uuid,             // the player writing statements
+    pub true_statement: String,
+    pub false_statement: String,
+    pub guesses: Vec<Guess>,     // all other players’ guesses
+    pub started_at: String,      // optional
+    pub ended_at: Option<String>
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct Guess {
+    pub player_id: Uuid,
+    pub guess: bool,             // true = they guessed the true statement correctly
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

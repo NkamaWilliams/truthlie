@@ -3,7 +3,12 @@ use chrono::Utc;
 use serde_json::json;
 use uuid::Uuid;
 
-use crate::{config::{self, MIN_PLAYERS}, error::AppError, models::game::{CreateGameSessionPayload, GameSession, JoinGameSessionPayload}, AppStateData};
+use crate::{
+    config::{MIN_ROUNDS, MIN_PLAYERS}, 
+    error::AppError, 
+    models::game::{CreateGameSessionPayload, GameSession, JoinGameSessionPayload}, 
+    AppStateData
+};
 
 // When calling routes must include trailing / e.g. 'URL/games/'
 
@@ -22,19 +27,25 @@ pub async fn create_game(
         }
     }
 
+    let max_rounds = config.max_rounds.unwrap_or(MIN_ROUNDS);
+    let max_players = config.max_players.unwrap_or(MIN_PLAYERS);
+    if (max_rounds % max_players) != 0 {
+        return Err(AppError::Validation("Maximum number of rounds must be a multiple of the number of players. All players should have an equal number of rounds".into()));
+    }
+
     let session = GameSession {
         id,
         name: config.name.clone().unwrap_or_else(|| "Truth or Lie".into()),
-        round_statements: vec![],
+        rounds: vec![],
         players: vec![host],
         host_id: host,
         has_started: false,
         is_private: config.is_private.unwrap_or(false),
         with_staking: config.with_staking.unwrap_or(false),
         stake_amount: config.stake_amount.unwrap_or(0),
-        max_players: config.max_players.unwrap_or(config::MIN_PLAYERS),
+        max_players,
         current_round: 0,
-        max_rounds: config.max_rounds.unwrap_or(config::MIN_ROUNDS),
+        max_rounds,
         current_guesses: 0,
         round_duration: 0,
         created_at: Utc::now().to_rfc3339(),

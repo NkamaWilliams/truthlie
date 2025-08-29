@@ -3,17 +3,21 @@ use std::collections::HashMap;
 use actix::prelude::*;
 use uuid::Uuid;
 
-use crate::ws::{player_ws::PlayerWS, BroadcastMessage, ClientMessage, Connect, Disconnect};
+use crate::{models::game::GameSession, ws::{player_ws::PlayerWS, BroadcastMessage, Connect, Disconnect, ServerMessage, StartGame}, AppStateData};
 
 /// Global Game Manager
+/// 
+/// Actors process messages sequentially so using HashMap is safe
 pub struct GameManager {
     // Maps Game to (Player, PlayerActor) mapping
-    games: HashMap<Uuid, HashMap<Uuid, Addr<PlayerWS>>>
+    games: HashMap<Uuid, HashMap<Uuid, Addr<PlayerWS>>>,
+    sessions: HashMap<Uuid, GameSession>, // temporary live game state (will settle once game ends)
+    global_data: AppStateData // Reference to global state
 }
 
 impl GameManager {
-    pub fn new() -> Self {
-        Self { games: HashMap::new() }
+    pub fn new(global_data: AppStateData) -> Self {
+        Self { games: HashMap::new(), sessions: HashMap::new(), global_data }
     }
 }
 
@@ -41,13 +45,34 @@ impl Handler<Disconnect> for GameManager {
     }
 }
 
-impl Handler<ClientMessage> for GameManager {
+impl Handler<StartGame> for GameManager {
     type Result = ();
-    fn handle(&mut self, msg: ClientMessage, _ctx: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: StartGame, _ctx: &mut Self::Context) -> Self::Result {
+        let mut none = false;
+        
+        let message = if let Some(session) = self.global_data.sessions.get(&msg.game_id) {
+            if session.host_id != msg.player_id {
+                none = true;
+                "Only the host can start a game"
+            } else {
+                self.sessions.insert(msg.game_id, session.clone());
+                ""
+            }
+        } else {
+            none = true;
+            "Failed to find game session!"
+
+        };
+
         if let Some(players) = self.games.get(&msg.game_id) {
             for (pid, addr) in players {
                 if pid != &msg.player_id {
-                    addr.do_send(BroadcastMessage(msg.text.clone()));
+                    let message = if none { 
+                        ServerMessage::Error { message: message.into() } 
+                    } else {
+                        ServerMessage::StartedGame { game_id: msg.game_id.to_string() }
+                    };
+                    addr.do_send(BroadcastMessage(message));
                 }
             }
         }

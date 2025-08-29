@@ -9,8 +9,8 @@ use backend::routes;
 async fn main() -> io::Result<()> {
     println!("Starting API at http://localhost:8080 ...");
 
-    let manager = web::Data::new(GameManager::new().start());
     let game_state = AppState::new().data();
+    let manager = web::Data::new(GameManager::new(game_state.clone()).start());
 
     HttpServer::new(move || {
         App::new()

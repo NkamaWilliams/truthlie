@@ -1,8 +1,8 @@
 use actix::prelude::*;
 use actix_web_actors::ws;
 use uuid::Uuid;
-use crate::{services::game_manager::GameManager, ws::{BroadcastMessage, ClientMessage, Connect, Disconnect}};
-use std::time::{Duration, Instant};
+use crate::{services::game_manager::GameManager, ws::{BroadcastMessage, ClientMessage, Connect, Disconnect, StartGame}};
+use std::{str::FromStr, time::{Duration, Instant}};
 
 // TODO: See if this can't be better optimized using zero-copy. Especially state
 pub struct PlayerWS {
@@ -61,7 +61,7 @@ impl PlayerWS {
 impl Handler<BroadcastMessage> for PlayerWS {
     type Result = ();
     fn handle(&mut self, msg: BroadcastMessage, ctx: &mut Self::Context) -> Self::Result {
-        ctx.text(msg.0);
+        ctx.text(serde_json::json!(msg.0).to_string());
     }
 }
 
@@ -69,12 +69,25 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for PlayerWS {
     fn handle(&mut self, msg: Result<ws::Message, ws::ProtocolError>, ctx: &mut Self::Context) {
         match msg {
             Ok(ws::Message::Text(text)) => {
-                println!("Received guess on server: {}", text);
-                self.server.do_send(ClientMessage {
-                    player_id: self.id,
-                    game_id: self.game_id,
-                    text: text.into()
-                });
+                log::info!("Received message on server: {}", text);
+
+                match serde_json::from_str::<ClientMessage>(&text) {
+                    Ok(ClientMessage::StartGame { game_id, player_id }) => {
+                        log::info!("Starting game: {}...", game_id);
+
+                        // Ensure valid uuid game_id and player_id
+                        match (Uuid::from_str(&game_id), Uuid::from_str(&player_id)) {
+                            (Ok(game_id), Ok(player_id)) => {
+                                self.server.do_send(StartGame { game_id, player_id });
+                            }
+                            _ => log::error!("Invalid UUIDs in StartGame: {}, {}", game_id, player_id),
+                        }
+                    }
+
+                    Err(e) => {
+                        log::error!("Invalid client message: {}", e);
+                    }
+                }
             }
             Ok(ws::Message::Ping(msg)) => ctx.pong(&msg),
             Ok(ws::Message::Pong(_)) => self.update_heartbeat(),

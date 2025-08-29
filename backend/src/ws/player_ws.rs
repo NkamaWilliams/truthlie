@@ -69,7 +69,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for PlayerWS {
     fn handle(&mut self, msg: Result<ws::Message, ws::ProtocolError>, ctx: &mut Self::Context) {
         match msg {
             Ok(ws::Message::Text(text)) => {
-                println!("Received guess: {}", text);
+                println!("Received guess on server: {}", text);
                 self.server.do_send(ClientMessage {
                     player_id: self.id,
                     game_id: self.game_id,

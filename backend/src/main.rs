@@ -1,6 +1,7 @@
 use std::io;
-
+use actix::prelude::*;
 use actix_web::{App, HttpServer, main, web};
+use backend::services::game_manager::GameManager;
 use backend::state::AppState;
 use backend::handlers;
 use backend::routes;
@@ -8,11 +9,13 @@ use backend::routes;
 async fn main() -> io::Result<()> {
     println!("Starting API at http://localhost:8080 ...");
 
+    let manager = web::Data::new(GameManager::new().start());
     let game_state = AppState::new().data();
 
     HttpServer::new(move || {
         App::new()
             .app_data(game_state.clone())
+            .app_data(manager.clone())
             .service(handlers::base)
             .service(
                 web::scope("/players")

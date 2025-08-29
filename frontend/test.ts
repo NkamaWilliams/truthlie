@@ -150,4 +150,85 @@ describe("Truth or Lie API", function () {
     const joinResp: ErrorResponse = await resp.json();
     assert.ok(joinResp.error, "Validation failed: Game has already started!");
   })
+
+  it("player1 should be able to start game session via ws", function (done) {
+    const ws = new WebSocket(`ws://127.0.0.1:8080/ws/${game.id}/${player1.id}`);
+    const ws2 = new WebSocket(`ws://127.0.0.1:8080/ws/${game.id}/${player2.id}`);
+
+    ws.onopen = () => {
+      console.log("WS1 connected, sending StartGame...");
+      const message = {
+        type: "StartGame",
+        data: { game_id: game.id, player_id: player1.id },
+      };
+      ws.send(JSON.stringify(message));
+    };
+
+    ws2.onmessage = (msg) => {
+      console.log("WS2 received:", msg.data);
+      const payload = JSON.parse(msg.data);
+
+      assert.strictEqual(payload.type, "StartedGame");
+      assert.strictEqual(payload.data.game_id, game.id);
+
+      ws.close();
+      ws2.close();
+      done();
+    };
+
+    ws.onerror = (err) => done(err);
+    ws2.onerror = (err) => done(err);
+  });
+
+  it("player2 should not be able to start game session via ws", function (done) {
+    const ws = new WebSocket(`ws://127.0.0.1:8080/ws/${game.id}/${player2.id}`);
+    const ws2 = new WebSocket(`ws://127.0.0.1:8080/ws/${game.id}/${player1.id}`);
+
+    ws.onopen = () => {
+      console.log("WS1 connected, sending StartGame...");
+      const message = {
+        type: "StartGame",
+        data: { game_id: game.id, player_id: player2.id },
+      };
+      ws.send(JSON.stringify(message));
+    };
+
+    ws2.onmessage = (msg) => {
+      console.log("WS2 received:", msg.data);
+      const payload = JSON.parse(msg.data);
+
+      assert.strictEqual(payload.type, "Error");
+      assert.strictEqual(payload.data.message, "Only the host can start a game");
+
+      ws.close();
+      ws2.close();
+      done();
+    };
+
+    ws.onerror = (err) => done(err);
+    ws2.onerror = (err) => done(err);
+  });
 });
+
+
+
+//
+// const game_id = "6711aab1-4c2b-45b6-a6f4-ba0123fc114f"
+
+// const player_id = "fbc28665-a2cd-4170-80c8-2bdd6698eacb"
+
+// let ws = new WebSocket(`ws://127.0.0.1:8080/ws/${game_id}/${player_id}`);
+
+// ws.onopen = () => console.log("Connection Opened!");
+// () => console.log("Connection Opened!")
+// ws.onmessage = (msg) => console.log("Received:", msg.data);
+// ws.onclose = () => console.log("Disconnected");
+// ws.onerror = (err) => console.error(err);
+
+// const message = {
+//     "type": "StartGame",
+//     "data": {
+//         "game_id": `${game_id}`,
+//         "player_id": "fbc28665-a2cd-4170-80c8-2bdd6698eacb"
+//     }
+// };
